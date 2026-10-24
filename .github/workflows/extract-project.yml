@@ -1,0 +1,48 @@
+
+name: Extract VinylGlassTV Project
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract project ZIP
+        run: |
+          ZIP_FILE=$(find . -maxdepth 1 -type f -iname '*.zip' | head -n 1)
+          if [ -z "$ZIP_FILE" ]; then
+            echo "No ZIP file found in the repository root."
+            exit 1
+          fi
+
+          mkdir -p /tmp/vinylglass
+          unzip -q "$ZIP_FILE" -d /tmp/vinylglass
+
+          if [ -d /tmp/vinylglass/VinylGlassTV ]; then
+            cp -R /tmp/vinylglass/VinylGlassTV/. .
+          else
+            echo "Expected VinylGlassTV folder not found in ZIP."
+            exit 1
+          fi
+
+          rm "$ZIP_FILE"
+
+      - name: Commit extracted files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Extract VinylGlassTV Android project"
+            git push
+          else
+            echo "No changes to commit."
+          fi
+          
